@@ -3,11 +3,16 @@ package com.amazon.ata.dynamodbquery.dao;
 import com.amazon.ata.dynamodbquery.dao.models.EventAnnouncement;
 import com.amazon.ata.dynamodbquery.converter.ZonedDateTimeConverter;
 
+import com.amazonaws.services.dynamodbv2.datamodeling.AttributeTransformer;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 
 import java.time.ZonedDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.inject.Inject;
 
 /**
@@ -38,8 +43,20 @@ public class EventAnnouncementDao {
      * @return the list of event announcements.
      */
     public List<EventAnnouncement> getEventAnnouncements(String eventId) {
-        // TODO: implement
-        return Collections.emptyList();
+        EventAnnouncement eventAnnouncement = new EventAnnouncement();
+        eventAnnouncement.setEventId(eventId);
+
+        Map<String, AttributeValue> valueMap = new HashMap<>();
+        valueMap.put("eventId", new AttributeValue().withS(eventId));
+
+
+        DynamoDBQueryExpression<EventAnnouncement> dynamoDBQueryExpression = new DynamoDBQueryExpression<EventAnnouncement>()
+                .withHashKeyValues(eventAnnouncement)
+                .withExpressionAttributeValues(valueMap);
+
+
+
+        return mapper.query(EventAnnouncement.class,dynamoDBQueryExpression );
     }
 
     /**
@@ -52,8 +69,18 @@ public class EventAnnouncementDao {
      */
     public List<EventAnnouncement> getEventAnnouncementsBetweenDates(String eventId, ZonedDateTime startTime,
                                                                      ZonedDateTime endTime) {
-        // TODO: implement
-        return Collections.emptyList();
+        Map<String , AttributeValue> valueMap = new HashMap<>();
+        valueMap.put(":eventId", new AttributeValue().withS(eventId));
+        valueMap.put(":startTime", new AttributeValue().withS(ZONED_DATE_TIME_CONVERTER.convert(startTime)));
+        valueMap.put(":endTime", new AttributeValue().withS(ZONED_DATE_TIME_CONVERTER.convert(endTime)));
+
+        DynamoDBQueryExpression<EventAnnouncement> dynamoDBQueryExpression =
+                new DynamoDBQueryExpression<EventAnnouncement>()
+                        .withKeyConditionExpression("eventId = :eventId and timePublished between :startTime and :endTime")
+                        .withExpressionAttributeValues(valueMap);
+
+
+        return mapper.query(EventAnnouncement.class, dynamoDBQueryExpression);
     }
 
     /**
